@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS navigation_items CASCADE;

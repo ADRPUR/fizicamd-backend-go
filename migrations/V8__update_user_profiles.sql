@@ -1,0 +1,4 @@
+ALTER TABLE user_profiles
+  DROP COLUMN IF EXISTS locale,
+  DROP COLUMN IF EXISTS timezone,
+  ADD COLUMN IF NOT EXISTS gender TEXT NULL;

@@ -1,0 +1,3 @@
+ALTER TABLE server_metric_samples
+  ADD COLUMN IF NOT EXISTS disk_total_bytes BIGINT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS disk_used_bytes BIGINT NOT NULL DEFAULT 0;

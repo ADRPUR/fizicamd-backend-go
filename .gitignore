@@ -1,0 +1,30 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace
+/bin/
+/pkg/
+
+# Logs
+*.log
+
+# Env
+.env
+
+# Editor
+.idea/
+.vscode/
+.DS_Store
+
+# Docker
+*.env
+
+# Build
+/dist/
+/build/

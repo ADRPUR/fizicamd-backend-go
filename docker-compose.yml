@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: fizicamd
+      POSTGRES_PASSWORD: fizicamd
+      POSTGRES_DB: fizicamd
+    ports:
+      - "5432:5432"
+    volumes:
+      - fizicamd_db:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+pgx://fizicamd:fizicamd@db:5432/fizicamd
+      JWT_SECRET: CHANGE_ME_CHANGE_ME_CHANGE_ME_CHANGE_ME_1234
+      JWT_ISSUER: fizicamd
+      ACCESS_TTL_SECONDS: 14400
+      REFRESH_TTL_SECONDS: 1209600
+      MEDIA_STORAGE_PATH: storage/media
+      METRICS_DISK_PATH: storage/media
+      METRICS_SAMPLE_INTERVAL: 5
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./storage:/app/storage
+
+volumes:
+  fizicamd_db:
