@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "deploy/docker-compose.yml"
+          source: "deploy/docker-compose.yml,deploy/.env.example"
           target: ${{ secrets.DEPLOY_PATH }}
       - uses: appleboy/ssh-action@v1.1.0
         with:
@@ -50,5 +50,13 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
+            if [ ! -f .env ]; then
+              echo "Missing .env in ${{ secrets.DEPLOY_PATH }}. Copy deploy/.env.example to .env and set JWT_SECRET/POSTGRES_PASSWORD."
+              exit 1
+            fi
+            if ! grep -q '^JWT_SECRET=' .env || [ -z "$(grep '^JWT_SECRET=' .env | cut -d= -f2-)" ]; then
+              echo "JWT_SECRET is missing in .env."
+              exit 1
+            fi
             docker compose pull
             docker compose up -d
