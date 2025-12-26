@@ -49,11 +49,20 @@ jobs:
           tags: |
             ghcr.io/adrpur/fizicamd-backend-go:release
             ghcr.io/adrpur/fizicamd-backend-go:${{ github.sha }}
+      - name: Validate SSH secrets
+        run: |
+          if [ -z "${SSH_KEY}" ]; then
+            echo "Missing SSH_KEY secret."
+            exit 1
+          fi
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
       - uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SSH_PORT }}
           source: "deploy/docker-compose.yml,deploy/.env.example"
           target: ${{ secrets.DEPLOY_PATH }}
@@ -62,6 +71,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
