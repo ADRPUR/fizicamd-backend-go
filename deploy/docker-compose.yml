@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fizicamd}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fizicamd}
+      POSTGRES_DB: ${POSTGRES_DB:-fizicamd}
+    volumes:
+      - fizicamd_db:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  api:
+    image: ghcr.io/adrpur/fizicamd-backend-go:release
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+pgx://${POSTGRES_USER:-fizicamd}:${POSTGRES_PASSWORD:-fizicamd}@db:5432/${POSTGRES_DB:-fizicamd}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-fizicamd}
+      ACCESS_TTL_SECONDS: ${ACCESS_TTL_SECONDS:-14400}
+      REFRESH_TTL_SECONDS: ${REFRESH_TTL_SECONDS:-1209600}
+      MEDIA_STORAGE_PATH: storage/media
+      LOG_DIR: storage/logs
+      METRICS_DISK_PATH: storage/media
+      METRICS_SAMPLE_INTERVAL: ${METRICS_SAMPLE_INTERVAL:-5}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./storage:/app/storage
+
+volumes:
+  fizicamd_db:
