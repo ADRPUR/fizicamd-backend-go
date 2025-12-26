@@ -85,31 +85,48 @@ jobs:
           SSH_USER: ${{ env.SSH_USER }}
           SSH_PORT: ${{ env.SSH_PORT }}
           DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
-      - uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: ${{ env.SSH_PORT }}
-          source: "deploy/docker-compose.yml,deploy/.env.example"
-          target: ${{ env.DEPLOY_PATH }}
-      - uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: ${{ env.SSH_PORT }}
-          script: |
-            cd ${{ env.DEPLOY_PATH }}
-            if [ ! -f .env ]; then
-              echo "Missing .env in ${{ env.DEPLOY_PATH }}. Copy deploy/.env.example to .env and set JWT_SECRET/POSTGRES_PASSWORD."
-              exit 1
-            fi
-            if ! grep -q '^JWT_SECRET=' .env || [ -z "$(grep '^JWT_SECRET=' .env | cut -d= -f2-)" ]; then
-              echo "JWT_SECRET is missing in .env."
-              exit 1
-            fi
-            docker compose pull
-            docker compose up -d
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          if [ -n "$SSH_PASSPHRASE" ]; then
+            eval "$(ssh-agent -s)"
+            printf '%s\n' '#!/bin/sh' 'echo "$SSH_PASSPHRASE"' > ~/.ssh/askpass.sh
+            chmod 700 ~/.ssh/askpass.sh
+            SSH_ASKPASS=~/.ssh/askpass.sh DISPLAY=dummy setsid ssh-add ~/.ssh/id_ed25519 </dev/null
+          fi
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+          SSH_HOST: ${{ env.SSH_HOST }}
+          SSH_PORT: ${{ env.SSH_PORT }}
+      - name: Upload deploy files
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp -P "$SSH_PORT" deploy/docker-compose.yml deploy/.env.example "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+        env:
+          SSH_HOST: ${{ env.SSH_HOST }}
+          SSH_USER: ${{ env.SSH_USER }}
+          SSH_PORT: ${{ env.SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+      - name: Deploy on server
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "\
+            cd '$DEPLOY_PATH' && \
+            if [ ! -f .env ]; then \
+              echo 'Missing .env in $DEPLOY_PATH. Copy deploy/.env.example to .env and set JWT_SECRET/POSTGRES_PASSWORD.'; \
+              exit 1; \
+            fi; \
+            if ! grep -q '^JWT_SECRET=' .env || [ -z \"$(grep '^JWT_SECRET=' .env | cut -d= -f2-)\" ]; then \
+              echo 'JWT_SECRET is missing in .env.'; \
+              exit 1; \
+            fi; \
+            docker compose pull && docker compose up -d"
+        env:
+          SSH_HOST: ${{ env.SSH_HOST }}
+          SSH_USER: ${{ env.SSH_USER }}
+          SSH_PORT: ${{ env.SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
