@@ -37,6 +37,7 @@ func NewServer(db *sqlx.DB, cfg config.Config, hub *services.MetricsHub) *Server
 
 func (s *Server) Router(ctx context.Context) http.Handler {
 	r := chi.NewRouter()
+	r.Use(RequestLogger)
 	if len(s.Config.CorsOrigins) > 0 {
 		r.Use(cors.Handler(cors.Options{
 			AllowedOrigins:   s.Config.CorsOrigins,
@@ -134,10 +135,12 @@ func (s *Server) Router(ctx context.Context) http.Handler {
 		})
 
 		api.Route("/media", func(media chi.Router) {
-			media.Use(WithAuth(s.Tokens))
-			media.Post("/uploads/avatar", s.UploadAvatar)
-			media.With(RequireAnyRole("TEACHER", "ADMIN")).Post("/uploads/resource", s.UploadResource)
 			media.Get("/assets/{assetId}/content", s.MediaContent)
+			media.Group(func(secured chi.Router) {
+				secured.Use(WithAuth(s.Tokens))
+				secured.Post("/uploads/avatar", s.UploadAvatar)
+				secured.With(RequireAnyRole("TEACHER", "ADMIN")).Post("/uploads/resource", s.UploadResource)
+			})
 		})
 	})
 

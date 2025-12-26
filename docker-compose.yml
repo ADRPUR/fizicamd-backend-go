@@ -21,6 +21,7 @@ services:
       ACCESS_TTL_SECONDS: 14400
       REFRESH_TTL_SECONDS: 1209600
       MEDIA_STORAGE_PATH: storage/media
+      LOG_DIR: storage/logs
       METRICS_DISK_PATH: storage/media
       METRICS_SAMPLE_INTERVAL: 5
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
