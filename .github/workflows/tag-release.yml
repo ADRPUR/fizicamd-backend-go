@@ -51,14 +51,24 @@ jobs:
           tags: |
             ghcr.io/adrpur/fizicamd-backend-go:release
             ghcr.io/adrpur/fizicamd-backend-go:${{ github.sha }}
-      - name: Validate SSH secrets
+      - name: Validate deploy secrets
         run: |
-          if [ -z "${SSH_KEY}" ]; then
-            echo "Missing SSH_KEY secret."
+          missing=0
+          for key in SSH_HOST SSH_USER SSH_PORT SSH_KEY DEPLOY_PATH; do
+            if [ -z "${!key}" ]; then
+              echo "Missing $key secret."
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
             exit 1
           fi
         env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
       - uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
