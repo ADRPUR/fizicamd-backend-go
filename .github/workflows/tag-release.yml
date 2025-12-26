@@ -74,6 +74,17 @@ jobs:
           SSH_PORT: ${{ env.SSH_PORT }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
           DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+      - name: Show deploy config (non-secret)
+        run: |
+          echo "SSH_HOST=${SSH_HOST}"
+          echo "SSH_USER=${SSH_USER}"
+          echo "SSH_PORT=${SSH_PORT}"
+          echo "DEPLOY_PATH=${DEPLOY_PATH}"
+        env:
+          SSH_HOST: ${{ env.SSH_HOST }}
+          SSH_USER: ${{ env.SSH_USER }}
+          SSH_PORT: ${{ env.SSH_PORT }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
       - uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.SSH_HOST }}
