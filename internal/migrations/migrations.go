@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -102,7 +103,18 @@ func listMigrations(dir string) ([]migration, error) {
 			Path: filepath.Join(dir, name),
 		})
 	}
-	sort.Slice(migs, func(i, j int) bool { return migs[i].Name < migs[j].Name })
+	sort.Slice(migs, func(i, j int) bool {
+		iVersion, iOk := parseVersionNumber(migs[i].Name)
+		jVersion, jOk := parseVersionNumber(migs[j].Name)
+		switch {
+		case iOk && jOk && iVersion != jVersion:
+			return iVersion < jVersion
+		case iOk != jOk:
+			return iOk
+		default:
+			return migs[i].Name < migs[j].Name
+		}
+	})
 	return migs, nil
 }
 
@@ -220,6 +232,18 @@ func parseVersion(name string) string {
 		return ""
 	}
 	return strings.TrimSpace(parts[0])
+}
+
+func parseVersionNumber(name string) (int, bool) {
+	raw := parseVersion(name)
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 func nullIfEmpty(value string) interface{} {
