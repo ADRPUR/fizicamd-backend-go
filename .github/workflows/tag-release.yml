@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   tag:
@@ -26,3 +27,51 @@ jobs:
           fi
           git tag "$TAG"
           git push origin "$TAG"
+  deploy:
+    runs-on: ubuntu-latest
+    needs: tag
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/tags/${{ github.event.inputs.tag }}
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/adrpur/fizicamd-backend-go:release
+            ghcr.io/adrpur/fizicamd-backend-go:${{ github.sha }}
+      - uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "deploy/docker-compose.yml,deploy/.env.example"
+          target: ${{ secrets.DEPLOY_PATH }}
+      - uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            if [ ! -f .env ]; then
+              echo "Missing .env in ${{ secrets.DEPLOY_PATH }}. Copy deploy/.env.example to .env and set JWT_SECRET/POSTGRES_PASSWORD."
+              exit 1
+            fi
+            if ! grep -q '^JWT_SECRET=' .env || [ -z "$(grep '^JWT_SECRET=' .env | cut -d= -f2-)" ]; then
+              echo "JWT_SECRET is missing in .env."
+              exit 1
+            fi
+            docker compose pull
+            docker compose up -d
