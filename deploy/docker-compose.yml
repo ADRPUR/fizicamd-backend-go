@@ -17,7 +17,7 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgresql+pgx://${POSTGRES_USER:-fizicamd}:${POSTGRES_PASSWORD:-fizicamd}@db:5432/${POSTGRES_DB:-fizicamd}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fizicamd}:${POSTGRES_PASSWORD:-fizicamd}@db:5432/${POSTGRES_DB:-fizicamd}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-fizicamd}
       ACCESS_TTL_SECONDS: ${ACCESS_TTL_SECONDS:-14400}
